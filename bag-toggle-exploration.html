@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bag Toggle Exploration</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f0ede8; font-family: "Inter", sans-serif; }
+:root {
+  --terra: oklch(58% 0.11 50);
+  --terra-bg: oklch(93% 0.04 50);
+  --sage: oklch(52% 0.09 155);
+  --navy: #1c2b1e;
+  --mid: #4a5c4d;
+  --soft: #8a9e8d;
+  --line: oklch(91% 0.015 75);
+}
+.phone {
+  width: 320px; background: oklch(97% 0.012 75);
+  border-radius: 28px; overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  font-family: "Inter", sans-serif;
+}
+.phone-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+  background: oklch(97% 0.012 75);
+}
+.phone-header-title { font-family: "Lora", serif; font-size: 16px; font-weight: 600; color: var(--navy); }
+.phone-header-sub { font-size: 11px; color: var(--soft); margin-top: 2px; }
+.card { background: white; border-radius: 18px; padding: 14px 16px; margin: 12px; box-shadow: 0 2px 12px rgba(28,43,30,0.08); }
+.card-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cat-icon { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: oklch(90% 0.05 50); }
+.cat-name { font-family: "Lora", serif; font-size: 15px; font-weight: 600; color: var(--navy); }
+.cat-sub { font-size: 10px; color: var(--soft); margin-top: 1px; }
+.hint { font-size: 10px; color: var(--mid); background: oklch(95% 0.03 155); border-radius: 7px; padding: 5px 9px; margin-bottom: 10px; }
+.item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid oklch(95% 0.01 75); }
+.item:last-child { border-bottom: none; }
+.item-text { flex: 1; }
+.item-name { font-size: 12px; font-weight: 500; }
+.item-note { font-size: 10px; color: var(--soft); margin-top: 1px; }
+.badge { font-size: 9px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 6px; border-radius: 5px; flex-shrink: 0; }
+.badge-prep { background: oklch(93% 0.03 220); color: oklch(45% 0.08 220); }
+.badge-labor { background: oklch(93% 0.04 155); color: oklch(42% 0.09 155); }
+
+/* ── OPTION A: Plus/Minus toggle ── */
+.tog-a { width: 26px; height: 26px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+.tog-a.in { background: var(--terra); }
+.tog-a.out { background: oklch(90% 0.02 75); }
+.item-name.out-a { color: var(--soft); }
+
+/* ── OPTION B: Toggle chip ── */
+.chip { border: none; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+.chip.in-b { background: var(--terra-bg); color: var(--terra); }
+.chip.out-b { background: oklch(93% 0.02 75); color: var(--soft); }
+
+/* ── OPTION C: Row background tint ── */
+.item-c { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; margin-bottom: 4px; transition: all 0.15s; cursor: pointer; }
+.item-c.in-c { background: oklch(96% 0.03 50); }
+.item-c.out-c { background: white; opacity: 0.55; }
+.dot-c { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-c.in { background: var(--terra); }
+.dot-c.out { background: oklch(80% 0.03 75); }
+
+.variant-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--soft); padding: 10px 12px 4px;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const ITEMS = [
+  { id: 1, name: "Comfortable robe or nightgown", note: "Opens easily for feeding", stage: "prep" },
+  { id: 2, name: "Non-slip socks or slippers", note: "Hospital floors are cold", stage: "prep" },
+  { id: 3, name: "Hair ties and headband", note: "She will want hair off her face", stage: "labor" },
+  { id: 4, name: "Pillow from home", note: "Hospital pillows are flat and crinkly", stage: "labor" },
+  { id: 5, name: "Going-home outfit", note: "Loose, think maternity size", stage: "prep" },
+];
+
+function PlusIcon({ size = 10 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 10" fill="none">
+      <path d="M5 1v8M1 5h8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function MinusIcon({ size = 10 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 10" fill="none">
+      <path d="M1 5h8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function XIcon({ size = 10, color = "white" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 10" fill="none">
+      <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function CheckIcon({ size = 10, color = "white" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 8" fill="none">
+      <path d="M1 4L3.5 6.5L9 1" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+// ── Option A: Filled circle, minus to remove, plus to add back ──
+function OptionA() {
+  const [excluded, setExcluded] = useState(new Set());
+  const toggle = (id) => setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const inc = ITEMS.length - excluded.size;
+  return (
+    <div className="phone">
+      <div className="phone-header">
+        <div className="phone-header-title">Option A — Plus / Minus</div>
+        <div className="phone-header-sub">Tap the circle to remove or add back</div>
+      </div>
+      <div className="card">
+        <div className="card-hdr">
+          <div className="cat-icon">🌸</div>
+          <div>
+            <div className="cat-name">For Her</div>
+            <div className="cat-sub">{inc} of {ITEMS.length} included</div>
+          </div>
+        </div>
+        <div className="hint">All items included by default. Tap — to remove anything you won't need.</div>
+        {ITEMS.map(item => {
+          const out = excluded.has(item.id);
+          return (
+            <div key={item.id} className="item" onClick={() => toggle(item.id)} style={{ cursor: "pointer" }}>
+              <button className={`tog-a ${out ? "out" : "in"}`} onClick={e => { e.stopPropagation(); toggle(item.id); }}>
+                {out ? <PlusIcon/> : <MinusIcon/>}
+              </button>
+              <div className="item-text">
+                <div className="item-name" style={{ color: out ? "var(--soft)" : "var(--navy)" }}>{item.name}</div>
+                <div className="item-note">{item.note}</div>
+              </div>
+              <span className={`badge badge-${item.stage}`}>{item.stage === "prep" ? "Before" : "Labor"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Option B: Pill chip toggle ──
+function OptionB() {
+  const [excluded, setExcluded] = useState(new Set());
+  const toggle = (id) => setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const inc = ITEMS.length - excluded.size;
+  return (
+    <div className="phone">
+      <div className="phone-header">
+        <div className="phone-header-title">Option B — Pill chip</div>
+        <div className="phone-header-sub">Labelled toggle chip on the right</div>
+      </div>
+      <div className="card">
+        <div className="card-hdr">
+          <div className="cat-icon">🌸</div>
+          <div>
+            <div className="cat-name">For Her</div>
+            <div className="cat-sub">{inc} of {ITEMS.length} included</div>
+          </div>
+        </div>
+        <div className="hint">All items included by default. Tap to remove or add back.</div>
+        {ITEMS.map(item => {
+          const out = excluded.has(item.id);
+          return (
+            <div key={item.id} className="item">
+              <div className="item-text">
+                <div className="item-name" style={{ color: out ? "var(--soft)" : "var(--navy)" }}>{item.name}</div>
+                <div className="item-note">{item.note}</div>
+              </div>
+              <button className={`chip ${out ? "out-b" : "in-b"}`} onClick={() => toggle(item.id)}>
+                {out ? "+ Add" : "✓ In"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Option C: Row tint + left dot ──
+function OptionC() {
+  const [excluded, setExcluded] = useState(new Set());
+  const toggle = (id) => setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const inc = ITEMS.length - excluded.size;
+  return (
+    <div className="phone">
+      <div className="phone-header">
+        <div className="phone-header-title">Option C — Row tint + dot</div>
+        <div className="phone-header-sub">Tap row to toggle, tint shows inclusion</div>
+      </div>
+      <div className="card" style={{ padding: "14px 10px" }}>
+        <div className="card-hdr" style={{ padding: "0 6px" }}>
+          <div className="cat-icon">🌸</div>
+          <div>
+            <div className="cat-name">For Her</div>
+            <div className="cat-sub">{inc} of {ITEMS.length} included</div>
+          </div>
+        </div>
+        <div style={{ padding: "0 6px 8px" }} className="hint">Tap any item to remove it from your bag list.</div>
+        {ITEMS.map(item => {
+          const out = excluded.has(item.id);
+          return (
+            <div key={item.id} className={`item-c ${out ? "out-c" : "in-c"}`} onClick={() => toggle(item.id)}>
+              <div className={`dot-c ${out ? "out" : "in"}`}/>
+              <div className="item-text">
+                <div className="item-name" style={{ color: out ? "var(--soft)" : "var(--navy)" }}>{item.name}</div>
+                <div className="item-note">{item.note}</div>
+              </div>
+              <span className={`badge badge-${item.stage}`}>{item.stage === "prep" ? "Before" : "Labor"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Option D: Swipe-inspired — X button separate from row ──
+function OptionD() {
+  const [excluded, setExcluded] = useState(new Set());
+  const toggle = (id) => setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const inc = ITEMS.length - excluded.size;
+  return (
+    <div className="phone">
+      <div className="phone-header">
+        <div className="phone-header-title">Option D — Ghost item on remove</div>
+        <div className="phone-header-sub">X to exclude, greyed ghost + restore button</div>
+      </div>
+      <div className="card">
+        <div className="card-hdr">
+          <div className="cat-icon">🌸</div>
+          <div>
+            <div className="cat-name">For Her</div>
+            <div className="cat-sub">{inc} of {ITEMS.length} included</div>
+          </div>
+        </div>
+        <div className="hint">Review and remove anything you don't need.</div>
+        {ITEMS.map(item => {
+          const out = excluded.has(item.id);
+          return out ? (
+            <div key={item.id} className="item" style={{ opacity: 0.4 }}>
+              <div style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <XIcon color="var(--soft)"/>
+              </div>
+              <div className="item-text">
+                <div className="item-name" style={{ color: "var(--soft)", textDecoration: "line-through" }}>{item.name}</div>
+              </div>
+              <button onClick={() => toggle(item.id)} style={{ border: "none", background: "oklch(92% 0.02 75)", color: "var(--mid)", fontSize: 10, fontWeight: 600, borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>Restore</button>
+            </div>
+          ) : (
+            <div key={item.id} className="item">
+              <div style={{ width: 26, flexShrink: 0 }}/>
+              <div className="item-text">
+                <div className="item-name" style={{ color: "var(--navy)" }}>{item.name}</div>
+                <div className="item-note">{item.note}</div>
+              </div>
+              <button onClick={() => toggle(item.id)} style={{ width: 24, height: 24, border: "none", background: "oklch(92% 0.02 75)", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <XIcon size={8} color="var(--soft)"/>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="s1" title="Labor Bag — Item Toggle Options">
+        <DCArtboard id="a" label="A — Plus/Minus circle" width={320} height={480}><OptionA/></DCArtboard>
+        <DCArtboard id="b" label="B — Pill chip (labelled)" width={320} height={440}><OptionB/></DCArtboard>
+        <DCArtboard id="c" label="C — Row tint + dot" width={320} height={440}><OptionC/></DCArtboard>
+        <DCArtboard id="d" label="D — Ghost + Restore" width={320} height={460}><OptionD/></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
